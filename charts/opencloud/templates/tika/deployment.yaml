@@ -18,6 +18,7 @@ spec:
         {{- include "opencloud.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: tika
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: tika
           image: {{ include "opencloud.image" (dict "imageValues" .Values.tika.image "global" .Values.global) | quote }}

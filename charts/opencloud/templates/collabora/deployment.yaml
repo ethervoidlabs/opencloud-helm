@@ -18,6 +18,7 @@ spec:
         {{- include "opencloud.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: collabora
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: collabora
           image: {{ include "opencloud.image" (dict "imageValues" .Values.collabora.image "global" .Values.global) | quote }}

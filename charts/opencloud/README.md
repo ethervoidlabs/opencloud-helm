@@ -208,7 +208,7 @@ helm install opencloud ./charts/opencloud \
 
 This will prepend `my-registry.com/` to all image references in the chart. For example:
 - `keycloak/keycloak:26.1.4` becomes `my-registry.com/keycloak/keycloak:26.1.4`
-- `opencloudeu/opencloud-rolling:latest` becomes `my-registry.com/opencloudeu/opencloud-rolling:latest`
+- `opencloudeu/opencloud:7.2.4@sha256:...` becomes `my-registry.com/opencloudeu/opencloud:7.2.4@sha256:...`
 
 ### Global Settings
 
@@ -235,8 +235,8 @@ This will prepend `my-registry.com/` to all image references in the chart. For e
 | Parameter | Description | Default |
 | --------- | ----------- | ------- |
 | `image.registry` | OpenCloud image registry | `docker.io` |
-| `image.repository` | OpenCloud image repository | `opencloudeu/opencloud-rolling` |
-| `image.tag` | OpenCloud image tag | `latest` |
+| `image.repository` | OpenCloud image repository | `opencloudeu/opencloud` |
+| `image.tag` | OpenCloud image tag and immutable digest | `7.2.4@sha256:6d992ccc5f1cbc7b2a9b272ba25f879b1b159c2d7ed7f5527e09059f16295697` |
 | `image.pullPolicy` | Image pull policy | `IfNotPresent` |
 | `image.pullSecrets` | Image pull secrets | `[]` |
 
@@ -249,9 +249,9 @@ This will prepend `my-registry.com/` to all image references in the chart. For e
 | `opencloud.logLevel` | Log level | `info` |
 | `opencloud.logColor` | Enable log color | `false` |
 | `opencloud.logPretty` | Enable pretty logging | `false` |
-| `opencloud.insecure` | Insecure mode (for self-signed certificates) | `true` |
+| `opencloud.insecure` | Insecure mode (for self-signed certificates) | `false` |
 | `opencloud.existingSecret` | Name of the existing secret | `` |
-| `opencloud.adminPassword` | Admin password | `admin` |
+| `opencloud.adminPassword` | Admin password (required unless `existingSecret` is set) | `` |
 | `opencloud.createDemoUsers` | Create demo users | `false` |
 | `opencloud.resources` | CPU/Memory resource requests/limits | `{}` |
 | `opencloud.persistence.enabled` | Enable persistence | `true` |
@@ -276,10 +276,10 @@ The following options configure S3 for user file storage, either with the intern
 
 | Parameter | Description | Default |
 | --------- | ----------- | ------- |
-| `opencloud.storage.s3.internal.enabled` | Enable internal MinIO instance | `true` |
+| `opencloud.storage.s3.internal.enabled` | Enable internal MinIO instance | `false` |
 | `opencloud.storage.s3.internal.existingSecret` | Name of the existing secret | `` |
 | `opencloud.storage.s3.internal.rootUser` | MinIO root user | `opencloud` |
-| `opencloud.storage.s3.internal.rootPassword` | MinIO root password | `opencloud-secret-key` |
+| `opencloud.storage.s3.internal.rootPassword` | MinIO root password | `` |
 | `opencloud.storage.s3.internal.bucketName` | MinIO bucket name | `opencloud-bucket` |
 | `opencloud.storage.s3.internal.region` | MinIO region | `default` |
 | `opencloud.storage.s3.internal.resources` | CPU/Memory resource requests/limits | See values.yaml |
@@ -309,7 +309,7 @@ The following options allow setting up a POSIX-compatible filesystem (such as NF
 | `opencloud.storage.posixfs.persistence.existingClaim` | Name of existing PVC instead of the settings below | `""` |
 | `opencloud.storage.posixfs.persistence.size` | Size of the PosixFS persistent volume | `30Gi` |
 | `opencloud.storage.posixfs.persistence.storageClass` | Storage class for PosixFS volume | `""` |
-| `opencloud.storage.posixfs.persistence.accessMode` | Access mode for PosixFS volume | `ReadWriteMany` |
+| `opencloud.storage.posixfs.persistence.accessMode` | Access mode for PosixFS volume | `ReadWriteOnce` |
 
 **Note:** When using `posixfs` mode, ensure that the underlying storage supports the required access mode (e.g., `ReadWriteMany` for multiple replicas). The underlying filesystem must support `flock` and `xattrs` so for NFS the minimum version is 4.2.
 
@@ -344,16 +344,16 @@ By default the chart deploys an internal keycloak. It can be disabled and replac
 | --------- | ----------- | ------- |
 | `keycloak.internal.enabled` | Enable internal Keycloak deployment | `true` |
 | `keycloak.internal.image.repository` | Keycloak image repository | `quay.io/keycloak/keycloak` |
-| `keycloak.internal.image.tag` | Keycloak image tag | `26.1.4` |
+| `keycloak.internal.image.tag` | Keycloak image tag and immutable digest | `26.1.4@sha256:044a457e04987e1fff756be3d2fa325a4ef420fa356b7034ecc9f1b693c32761` |
 | `keycloak.internal.image.pullPolicy` | Image pull policy | `IfNotPresent` |
 | `keycloak.internal.replicas` | Number of replicas | `1` |
 | `keycloak.internal.existingSecret` | Name of the existing secret | `` |
 | `keycloak.internal.adminUser` | Admin user | `admin` |
-| `keycloak.internal.adminPassword` | Admin password | `admin` |
+| `keycloak.internal.adminPassword` | Admin password (required unless `existingSecret` is set) | `` |
 | `keycloak.internal.realm` | Realm name | `openCloud` |
 | `keycloak.internal.resources` | CPU/Memory resource requests/limits | `{}` |
 | `keycloak.internal.cors.enabled` | Enable CORS | `true` |
-| `keycloak.internal.cors.allowAllOrigins` | Allow all origins | `true` |
+| `keycloak.internal.cors.allowAllOrigins` | Allow all origins | `false` |
 
 > **Note**: When using internal Keycloak with multiple OpenCloud replicas (`opencloud.replicas > 1`), you must use an external shared database or LDAP. The embedded IDM does not support replication. See [issue #53](https://github.com/opencloud-eu/helm/issues/53) for details.
 
@@ -380,7 +380,7 @@ keycloak:
 | `postgres.database` | Database name | `keycloak` |
 | `postgres.existingSecret` | Name of the existing secret | `` |
 | `postgres.user` | Database user | `keycloak` |
-| `postgres.password` | Database password | `keycloak` |
+| `postgres.password` | Database password (required unless `existingSecret` is set) | `` |
 | `postgres.resources` | CPU/Memory resource requests/limits | `{}` |
 | `postgres.persistence.enabled` | Enable persistence | `true` |
 | `postgres.persistence.size` | Size of the persistent volume | `1Gi` |
@@ -392,12 +392,12 @@ keycloak:
 
 | Parameter | Description | Default |
 | --------- | ----------- | ------- |
-| `onlyoffice.enabled` | Enable OnlyOffice | `true` |
+| `onlyoffice.enabled` | Enable OnlyOffice | `false` |
 | `onlyoffice.repository` | OnlyOffice image repository | `onlyoffice/documentserver` |
 | `onlyoffice.tag` | OnlyOffice image tag | `8.2.2` |
 | `onlyoffice.pullPolicy` | Image pull policy | `IfNotPresent` |
 | `onlyoffice.wopi.enabled` | Enable WOPI integration | `true` |
-| `onlyoffice.useUnauthorizedStorage` | Use unauthorized storage (for self-signed certificates) | `true` |
+| `onlyoffice.useUnauthorizedStorage` | Use unauthorized storage (for self-signed certificates) | `false` |
 | `onlyoffice.persistence.enabled` | Enable persistence | `true` |
 | `onlyoffice.persistence.size` | Size of the persistent volume | `2Gi` |
 | `onlyoffice.resources` | CPU/Memory resource requests/limits | `{}` |
@@ -416,13 +416,13 @@ This ensures the `X-Forwarded-Proto: https` header is added as required by OnlyO
 
 | Parameter | Description | Default |
 | --------- | ----------- | ------- |
-| `collabora.enabled` | Enable Collabora | `true` |
+| `collabora.enabled` | Enable Collabora | `false` |
 | `collabora.image.repository` | Collabora image repository | `collabora/code` |
 | `collabora.image.tag` | Collabora image tag | `24.04.13.2.1` |
 | `collabora.image.pullPolicy` | Image pull policy | `IfNotPresent` |
 | `collabora.existingSecret` | Name of the existing secret | `` |
 | `collabora.admin.username` | Admin username | `admin` |
-| `collabora.admin.password` | Admin password | `admin` |
+| `collabora.admin.password` | Admin password (required unless `existingSecret` is set) | `` |
 | `collabora.ssl.enabled` | Enable SSL | `true` |
 | `collabora.ssl.verification` | SSL verification | `true` |
 | `collabora.resources` | CPU/Memory resource requests/limits | `{}` |

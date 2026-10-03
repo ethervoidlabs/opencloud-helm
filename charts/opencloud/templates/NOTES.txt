@@ -7,23 +7,15 @@ To learn more about the release, try:
   $ helm status {{ .Release.Name }}
   $ helm get all {{ .Release.Name }}
 
-IMPORTANT: This is a development deployment. For production use, you MUST change the following default credentials:
-
-1. Keycloak Admin: adminUser: admin, adminPassword: admin
-2. OpenCloud Admin: adminPassword: admin
-3. PostgreSQL: user: keycloak, password: keycloak
-4. MinIO: rootUser: opencloud, rootPassword: opencloud-secret-key
-5. OnlyOffice Database: sql.dbUser: onlyoffice, sql.dbPass: onlyoffice
-6. RabbitMQ: url: amqp://guest:guest@localhost
-
-Using default credentials in production environments poses significant security risks.
+Credentials are not printed by this chart. Verify that enabled components use
+an externally managed Secret or reviewed deployment values.
 
 The following services have been deployed:
 
 1. OpenCloud (Main Application):
    - Service: {{ include "opencloud.opencloud.fullname" . }}
    - Port: 9200
-   - Storage Driver: decomposeds3
+   - Storage Driver: {{ if eq .Values.opencloud.storage.mode "posixfs" }}posix{{ else }}decomposeds3{{ end }}
    - System Storage Driver: decomposed
    - S3 Storage: {{ if .Values.opencloud.storage.s3.external.enabled }}{{ .Values.opencloud.storage.s3.external.endpoint }}{{ else if .Values.opencloud.storage.s3.internal.enabled }}MinIO ({{ include "opencloud.minio.fullname" . }}){{ else }}Not configured{{ end }}
    - S3 Bucket: {{ if .Values.opencloud.storage.s3.external.enabled }}{{ .Values.opencloud.storage.s3.external.bucket }}{{ else if .Values.opencloud.storage.s3.internal.enabled }}{{ .Values.opencloud.storage.s3.internal.bucketName }}{{ else }}Not configured{{ end }}
@@ -33,7 +25,7 @@ The following services have been deployed:
    - Service: {{ include "opencloud.keycloak.fullname" . }}
    - Port: 8080
    - Username: {{ .Values.keycloak.internal.adminUser }}
-   - Password: {{ .Values.keycloak.internal.adminPassword }}
+    - Password: supplied through the configured Secret (not displayed)
 {{- end }}
 
 {{- if .Values.opencloud.storage.s3.internal.enabled }}
@@ -41,8 +33,7 @@ The following services have been deployed:
    - Service: {{ include "opencloud.minio.fullname" . }}
    - API Port: 9000
    - Console Port: 9001
-   - Username: {{ .Values.opencloud.storage.s3.internal.rootUser }}
-   - Password: {{ .Values.opencloud.storage.s3.internal.rootPassword }}
+    - Credentials: supplied through the configured Secret (not displayed)
 {{- end }}
 
 {{- if and .Values.onlyoffice.collaboration.enabled .Values.onlyoffice.enabled }}

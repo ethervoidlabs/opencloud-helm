@@ -5,15 +5,10 @@
 # =====================================================================
 # SECURITY WARNING
 # =====================================================================
-# IMPORTANT: The following default credentials MUST be changed in production environments.
-# Using these default values in production is a significant security risk.
+# Credentials are intentionally empty by default. Provide existing Secret names
+# or explicit values through a secret manager; the chart fails closed otherwise.
 #
-# Credentials that need to be changed:
-# 1. Keycloak Admin: adminUser: admin, adminPassword: admin
-# 2. OpenCloud Admin: adminPassword: admin
-# 3. PostgreSQL: user: keycloak, password: keycloak
-# 4. MinIO: rootUser: opencloud, rootPassword: opencloud-secret-key
-# 5. RabbitMQ: url: amqp://guest:guest@localhost
+# Credentials are not supplied for enabled components.
 
 
 # =====================================================================
@@ -84,7 +79,7 @@ busybox:
     # Busybox image repository
     repository: library/busybox
     # Busybox image tag
-    tag: "1.36"
+    tag: "1.36@sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662"
     # Image pull policy
     pullPolicy: IfNotPresent
 
@@ -106,7 +101,7 @@ keycloak:
       # Keycloak image repository
       repository: keycloak/keycloak
       # Keycloak image tag
-      tag: "26.1.4"
+      tag: "26.1.4@sha256:044a457e04987e1fff756be3d2fa325a4ef420fa356b7034ecc9f1b693c32761"
       # Image pull policy
       pullPolicy: IfNotPresent
     # Number of Keycloak replicas
@@ -121,7 +116,7 @@ keycloak:
 
     # Admin password
     # ignored if keycloak.internal.existingSecret is set
-    adminPassword: admin
+    adminPassword: ""
 
     # Keycloak realm
     realm: "openCloud"
@@ -131,7 +126,7 @@ keycloak:
       # Enable CORS
       enabled: true
       # Allow all origins
-      allowAllOrigins: true
+      allowAllOrigins: false
       # Allowed origins (used if allowAllOrigins is false)
       origins: []
       # Allowed methods
@@ -158,7 +153,7 @@ postgres:
     # PostgreSQL image repository
     repository: postgres
     # PostgreSQL image tag
-    tag: "alpine"
+    tag: "16-alpine@sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea"
     # Image pull policy
     pullPolicy: IfNotPresent
 
@@ -174,7 +169,7 @@ postgres:
 
   # Database password
   # ignored if postgres.existingSecret is set
-  password: keycloak
+  password: ""
 
   # Resources allocation
   resources:
@@ -212,7 +207,7 @@ tika:
     # Tika image repository
     repository: apache/tika
     # Tika image tag
-    tag: "2.9.2.1-full"
+    tag: "2.9.2.1-full@sha256:ae0b86d3c4d06d8997407fcb08f31a7259fff91c43e0c1d7fffdad1e9ade3fe8"
     # Image pull policy
     pullPolicy: IfNotPresent
   # Resources allocation
@@ -227,7 +222,7 @@ tika:
 # Web Extensions settings
 webExtensions:
   # Enable web extensions
-  enabled: true
+  enabled: false
   # Common image settings for all extensions
   image:
     # Registry for web extensions
@@ -286,7 +281,7 @@ collabora:
     username: admin
 
     # ignored if collabora.existingSecret is set
-    password: admin
+    password: ""
 
   resources:
     requests:
@@ -303,7 +298,7 @@ collabora:
 # OnlyOffice settings for document collaboration
 onlyoffice:
   # Enable OnlyOffice
-  enabled: true
+  enabled: false
   # OnlyOffice image settings
   image:
     # OnlyOffice image registry
@@ -319,7 +314,7 @@ onlyoffice:
     # Enable WOPI
     enabled: true
   # Use unauthorized storage (for self-signed certificates)
-  useUnauthorizedStorage: true
+  useUnauthorizedStorage: false
   # Database configuration
   db:
     # Use existing secret for database password
@@ -361,14 +356,14 @@ onlyoffice:
         
         # ignored if onlyoffice.config.coAuthoring.secret.existingSecret is set
         session:
-          string: "Dd0SXIe1k9oCfdffgrfNmA0TK1bb1B1d38OFSb"
+          string: ""
     # RabbitMQ settings
     rabbitmq:
       # Use existing secret for onlyoffice rabbitmq credentials (Note: secretKeyName must be url)
       existingSecret: ""
 
       # ignored if onlyoffice.config.rabbitmq.existingSecret is set
-      url: "amqp://guest:Dd0SXIe1k9osdfjkmA0TK1bb1B1d38OFSb@localhost"
+      url: ""
     # File converter settings
     fileConverter:
       converter:
@@ -407,9 +402,9 @@ image:
   # OpenCloud image registry
   registry: docker.io
   # OpenCloud image repository
-  repository: opencloudeu/opencloud-rolling
+  repository: opencloudeu/opencloud
   # OpenCloud image tag
-  tag: "2.1.0"
+  tag: "7.2.4@sha256:6d992ccc5f1cbc7b2a9b272ba25f879b1b159c2d7ed7f5527e09059f16295697"
   # Image pull policy
   pullPolicy: IfNotPresent
   # Image pull secrets
@@ -429,14 +424,14 @@ opencloud:
   # Log pretty
   logPretty: false
   # Insecure mode (for self-signed certificates)
-  insecure: true
+  insecure: false
   
   # Use existing secret for opencloud admin credentials (Note: secretKeyName must be adminPassword)
   existingSecret: ""
   
   # Admin password
   # ignored if opencloud.existingSecret is set
-  adminPassword: admin
+  adminPassword: ""
   
   # Create demo users
   createDemoUsers: false
@@ -568,14 +563,15 @@ opencloud:
   
   # Storage configuration
   storage:
-    # Storage mode for user files, can be "s3" (default) or "posixfs"
+    # Storage mode for user files, can be "s3" or "posixfs".
+    # Production defaults require an explicitly configured external S3 backend.
     mode: s3
     # S3 storage configuration
     s3:
       # Internal MinIO instance
       internal:
-        # Enable internal test MinIO instance (default: true)
-        enabled: true
+        # Enable internal test MinIO instance (disabled by default)
+        enabled: false
         # MinIO image settings
         image:
           # MinIO image registry
@@ -583,7 +579,9 @@ opencloud:
           # MinIO image repository
           repository: minio/minio
           # MinIO image tag
-          tag: latest
+          # Optional component disabled by default; use a reviewed immutable
+          # image reference with @sha256: if it is enabled.
+          tag: "disabled"
           # Image pull policy
           pullPolicy: IfNotPresent
         # httpRoute configuration
@@ -600,7 +598,7 @@ opencloud:
 
         # Minio Root password
         # ignored if opencloud.storage.s3.internal.existingSecret is set
-        rootPassword: opencloud-secret-key
+        rootPassword: ""
         
         # Bucket name
         bucketName: opencloud-bucket
@@ -664,7 +662,7 @@ opencloud:
         # Storage class
         storageClass: ""
         # Access mode (ReadWriteOnce or ReadWriteMany for multiple replicas)
-        accessMode: ReadWriteMany
+        accessMode: ReadWriteOnce
 
 # =====================================================================
 # GATEWAY-API HTTPRoute

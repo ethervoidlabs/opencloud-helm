@@ -1,5 +1,4 @@
 #!/bin/bash
-printenv
 # replace openCloud domain in keycloak realm import
 mkdir -p /opt/keycloak/data/import
 

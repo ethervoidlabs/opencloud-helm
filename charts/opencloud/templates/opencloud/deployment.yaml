@@ -35,6 +35,7 @@ spec:
         checksum/configmap: {{ include (print $.Template.BasePath "/opencloud/configmap.yaml") . | sha256sum }}
         checksum/web-extensions-init: {{ include (print $.Template.BasePath "/opencloud/web-extensions-init.yaml") . | sha256sum }}
     spec:
+      automountServiceAccountToken: false
       securityContext:
         fsGroup: 1000
         fsGroupChangePolicy: OnRootMismatch
@@ -124,12 +125,16 @@ spec:
               type: RuntimeDefault
           imagePullPolicy: {{ include "opencloud.image.pullPolicy" (dict "pullPolicy" .Values.image.pullPolicy "global" .Values.global) }}
           command: ["/bin/sh"]
-          args: ["-c", "opencloud init || true; opencloud server"]
+          # `opencloud init` refuses to overwrite an existing persistent config.
+          # Initialize only on first boot, then start normally on restarts.
+          args: ["-c", "if [ -f /etc/opencloud/opencloud.yaml ]; then exec opencloud server; else exec opencloud init && exec opencloud server; fi"]
           {{- with .Values.opencloud.envFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           env:
+            - name: OC_CONFIG_DIR
+              value: /etc/opencloud
             # OpenCloud URL
             - name: OC_URL
               value: "https://{{ include "opencloud.domain" . }}"

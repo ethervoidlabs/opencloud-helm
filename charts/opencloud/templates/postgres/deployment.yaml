@@ -20,6 +20,7 @@ spec:
         {{- include "opencloud.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: postgres
     spec:
+      automountServiceAccountToken: false
       securityContext:
         fsGroup: 999  # Default PostgreSQL group ID
       containers:

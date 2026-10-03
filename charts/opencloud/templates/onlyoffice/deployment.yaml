@@ -18,6 +18,7 @@ spec:
         {{- include "opencloud.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: onlyoffice
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: onlyoffice
           image: {{ include "opencloud.image" (dict "imageValues" .Values.onlyoffice.image "global" .Values.global) | quote }}

@@ -20,6 +20,7 @@ spec:
         {{- include "opencloud.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: minio
     spec:
+      automountServiceAccountToken: false
       securityContext:
         fsGroup: 1000
       initContainers:

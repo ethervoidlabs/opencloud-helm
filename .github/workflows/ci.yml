@@ -1,0 +1,51 @@
+name: Helm Chart CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate OpenCloud chart
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Helm
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5
+        with:
+          version: v3.19.0
+
+      - name: Lint chart
+        run: |
+          helm lint charts/opencloud --strict \
+            --set-string opencloud.adminPassword=ci-only-opencloud-password \
+            --set-string keycloak.internal.adminPassword=ci-only-keycloak-password \
+            --set-string postgres.password=ci-only-postgres-password \
+            --set opencloud.storage.s3.external.enabled=true \
+            --set-string opencloud.storage.s3.external.endpoint=https://s3.example.test \
+            --set-string opencloud.storage.s3.external.bucket=ci-opencloud \
+            --set-string opencloud.storage.s3.external.accessKey=ci-access \
+            --set-string opencloud.storage.s3.external.secretKey=ci-secret
+
+      - name: Render chart and inspect image references
+        run: |
+          helm template opencloud charts/opencloud \
+            --set-string opencloud.adminPassword=ci-only-opencloud-password \
+            --set-string keycloak.internal.adminPassword=ci-only-keycloak-password \
+            --set-string postgres.password=ci-only-postgres-password \
+            --set opencloud.storage.s3.external.enabled=true \
+            --set-string opencloud.storage.s3.external.endpoint=https://s3.example.test \
+            --set-string opencloud.storage.s3.external.bucket=ci-opencloud \
+            --set-string opencloud.storage.s3.external.accessKey=ci-access \
+            --set-string opencloud.storage.s3.external.secretKey=ci-secret > rendered.yaml
+          ! grep -E '(^|:)latest(["[:space:]]|$)|opencloud-rolling' rendered.yaml
+          grep -q 'opencloudeu/opencloud:7.2.4@sha256:6d992ccc5f1cbc7b2a9b272ba25f879b1b159c2d7ed7f5527e09059f16295697' rendered.yaml

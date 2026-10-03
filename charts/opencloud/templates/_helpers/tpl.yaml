@@ -174,6 +174,67 @@ Return the full image name with registry
 {{- end -}}
 {{- end -}}
 
+{{/* Require immutable image references for every enabled workload. */}}
+{{- define "opencloud.validateImageDigest" -}}
+{{- if not (contains "@sha256:" .tag) -}}
+{{- fail (printf "%s.image.tag must include a verified @sha256: digest (got %q)" .component .tag) -}}
+{{- end -}}
+{{- end -}}
+
+{{/* Fail closed on credentials and mutable images. */}}
+{{- define "opencloud.validate" -}}
+{{- include "opencloud.validateImageDigest" (dict "component" "image" "tag" .Values.image.tag) }}
+{{- include "opencloud.validateImageDigest" (dict "component" "busybox.image" "tag" .Values.busybox.image.tag) }}
+{{- if not (has .Values.opencloud.storage.mode (list "s3" "posixfs")) }}
+{{- fail (printf "opencloud.storage.mode must be either s3 or posixfs (got %q)" .Values.opencloud.storage.mode) }}
+{{- end }}
+{{- if and .Values.keycloak.internal.enabled (not .Values.keycloak.internal.existingSecret) }}
+{{- if not .Values.keycloak.internal.adminPassword }}{{ fail "keycloak.internal.adminPassword must be set when existingSecret is empty" }}{{ end }}
+{{- end }}
+{{- if and .Values.postgres.enabled .Values.keycloak.internal.enabled (not .Values.postgres.existingSecret) }}
+{{- if not .Values.postgres.password }}{{ fail "postgres.password must be set when existingSecret is empty" }}{{ end }}
+{{- end }}
+{{- if and .Values.opencloud.enabled (not .Values.opencloud.existingSecret) }}
+{{- if not .Values.opencloud.adminPassword }}{{ fail "opencloud.adminPassword must be set when existingSecret is empty" }}{{ end }}
+{{- end }}
+{{- if and .Values.keycloak.internal.enabled (not (contains "@sha256:" .Values.keycloak.internal.image.tag)) }}
+{{- fail "keycloak.internal.image.tag must include a verified @sha256: digest" }}
+{{- end }}
+{{- if and .Values.postgres.enabled .Values.keycloak.internal.enabled (not (contains "@sha256:" .Values.postgres.image.tag)) }}
+{{- fail "postgres.image.tag must include a verified @sha256: digest" }}
+{{- end }}
+{{- if and .Values.tika.enabled (not (contains "@sha256:" .Values.tika.image.tag)) }}
+{{- fail "tika.image.tag must include a verified @sha256: digest" }}
+{{- end }}
+{{- if .Values.collabora.enabled }}
+{{- if not (contains "@sha256:" .Values.collabora.image.tag) }}{{ fail "collabora.image.tag must include a verified @sha256: digest" }}{{ end }}
+{{- if and (not .Values.collabora.existingSecret) (not .Values.collabora.admin.password) }}{{ fail "collabora.admin.password must be set when existingSecret is empty" }}{{ end }}
+{{- end }}
+{{- if .Values.onlyoffice.enabled }}
+{{- if not (contains "@sha256:" .Values.onlyoffice.image.tag) }}{{ fail "onlyoffice.image.tag must include a verified @sha256: digest" }}{{ end }}
+{{- if and (not .Values.onlyoffice.config.coAuthoring.secret.existingSecret) (not .Values.onlyoffice.config.coAuthoring.secret.session.string) }}{{ fail "onlyoffice session secret must be set when existingSecret is empty" }}{{ end }}
+{{- if and (not .Values.onlyoffice.config.rabbitmq.existingSecret) (not .Values.onlyoffice.config.rabbitmq.url) }}{{ fail "onlyoffice rabbitmq URL must be set when existingSecret is empty" }}{{ end }}
+{{- end }}
+{{- if .Values.webExtensions.enabled }}
+{{- range $name, $extension := .Values.webExtensions.extensions }}
+{{- if and $extension.enabled (not (contains "@sha256:" $extension.tag)) }}{{ fail (printf "webExtensions.extensions.%s.tag must include a verified @sha256: digest" $name) }}{{ end }}
+{{- end }}
+{{- end }}
+{{- if and (eq .Values.opencloud.storage.mode "s3") .Values.opencloud.storage.s3.internal.enabled }}
+{{- if and (not .Values.opencloud.storage.s3.internal.existingSecret) (not .Values.opencloud.storage.s3.internal.rootPassword) }}{{ fail "opencloud.storage.s3.internal.rootPassword must be set when existingSecret is empty" }}{{ end }}
+{{- if not (contains "@sha256:" .Values.opencloud.storage.s3.internal.image.tag) }}{{ fail "opencloud.storage.s3.internal.image.tag must include a verified @sha256: digest" }}{{ end }}
+{{- end }}
+{{- if eq .Values.opencloud.storage.mode "s3" }}
+{{- if and .Values.opencloud.storage.s3.internal.enabled .Values.opencloud.storage.s3.external.enabled }}{{ fail "enable only one S3 backend: internal or external" }}{{ end }}
+{{- if not (or .Values.opencloud.storage.s3.internal.enabled .Values.opencloud.storage.s3.external.enabled) }}{{ fail "S3 storage requires either the internal or external backend" }}{{ end }}
+{{- if .Values.opencloud.storage.s3.external.enabled }}
+{{- if not .Values.opencloud.storage.s3.external.endpoint }}{{ fail "opencloud.storage.s3.external.endpoint must be set when external S3 is enabled" }}{{ end }}
+{{- if not .Values.opencloud.storage.s3.external.bucket }}{{ fail "opencloud.storage.s3.external.bucket must be set when external S3 is enabled" }}{{ end }}
+{{- if and (not .Values.opencloud.storage.s3.external.existingSecret) (or (not .Values.opencloud.storage.s3.external.accessKey) (not .Values.opencloud.storage.s3.external.secretKey)) }}{{ fail "external S3 requires existingSecret or both accessKey and secretKey" }}{{ end }}
+{{- end }}
+{{- end }}
+{{- end -}}
+
 {{/*
 Return the appropriate apiVersion for ingress
 */}}

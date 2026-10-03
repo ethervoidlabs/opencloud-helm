@@ -10,9 +10,9 @@ maintainers:
     email: info@opencloud.eu
     url: https://opencloud.eu
 type: application
-version: 0.2.3
-# renovate: datasource=docker depName=opencloudeu/opencloud-rolling
-appVersion: latest
+version: 0.3.0
+# renovate: datasource=docker depName=opencloudeu/opencloud
+appVersion: "7.2.4"
 kubeVersion: ""
 sources:
   - https://github.com/opencloud-eu/opencloud
